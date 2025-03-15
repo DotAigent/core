@@ -32,18 +32,19 @@ public class OpenAiAgentBuilder : IAgentBuilder
 
     public OpenAiAgentBuilder WithModelName(string modelName)
     {
-        Console.WriteLine("Setting model name to: " + modelName);
         _agent.ModelName = modelName;
         return this;
     }
 
     public IAgentBuilder WithTool(ITool tool)
     {
+        _agent.Tools.Add(tool);
         return _builder.WithTool(tool);
     }
 
     public IAgentBuilder WithTools(IEnumerable<ITool> tools)
     {
+        _agent.Tools.AddRange(tools);
         return _builder.WithTools(tools);
     }
 

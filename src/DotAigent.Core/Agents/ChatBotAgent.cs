@@ -10,14 +10,6 @@ public class ChatbotAgent : AgentBase
     {
         try
         {
-            if (input.Contains("current events", StringComparison.OrdinalIgnoreCase))
-            {
-                var searchTool = GetToolByName("Search");
-                if (searchTool == null) return "No search tool available.";
-                var parameters = new Dictionary<string, object> { { "query", input } };
-                var result = await searchTool.ExecuteAsync(parameters);
-                return result.ToString() ?? "No results found.";
-            }
             var prompt = string.IsNullOrEmpty(DefaultPrompt) ? input : $"{DefaultPrompt}: {input}";
             return await Model.GenerateResponseAsync(prompt);
         }
