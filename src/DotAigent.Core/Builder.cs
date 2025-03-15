@@ -1,4 +1,3 @@
-
 using DotAigent.Core.Agents;
 
 namespace DotAigent.Core;
@@ -9,8 +8,7 @@ namespace DotAigent.Core;
 public class AgentBuilder : IAgentBuilder
 {
     private IModel? _model;
-    private readonly List<ITool> _tools = new();
-    private string _defaultPrompt = "";
+    private string _systemPrompt = string.Empty;
 
     /// <summary>
     /// Set the AI model to use
@@ -22,40 +20,26 @@ public class AgentBuilder : IAgentBuilder
     }
 
     /// <summary>
-    /// Add a single tool
+    /// Set the AI model to use
     /// </summary>
-    public IAgentBuilder WithTool(ITool tool)
+    public IAgentBuilder WithSystemPrompt(string systemPrompt)
     {
-        if (tool != null) _tools.Add(tool);
+        if (string.IsNullOrEmpty(systemPrompt))
+                throw new ArgumentException("System prompt cannot be null or empty.", nameof(systemPrompt));
+        _systemPrompt = systemPrompt;
         return this;
     }
 
     /// <summary>
-    /// Add multiple tools
-    /// </summary>
-    public IAgentBuilder WithTools(IEnumerable<ITool> tools)
-    {
-        if (tools != null) _tools.AddRange(tools.Where(t => t != null));
-        return this;
-    }
-
-    /*/// <summary>*/
-    /*/// Set an optional default prompt*/
-    /*/// </summary>*/
-    /*public IAgentBuilder WithDefaultPrompt(string defaultPrompt)*/
-    /*{*/
-    /*    _defaultPrompt = defaultPrompt ?? "";*/
-    /*    return this;*/
-    /*}*/
-
-    /// <summary>
-    /// Build the agent (ChatbotAgent in this case)
+    /// Build the agent 
     /// </summary>
     public IAgent Build()
     {
         if (_model == null)
-            throw new InvalidOperationException("An AI model must be specified before building the agent.");
+            throw new InvalidOperationException("An AI model must be specified before building the agent."); 
 
-        return new ChatbotAgent(_model, _tools, _defaultPrompt);
+        _model.SetSystemPrompt(_systemPrompt);
+
+        return new ChatbotAgent(_model);
     }
 }

@@ -2,7 +2,6 @@
 namespace DotAigent.Models;
 
 using DotAigent.Core;
-using OpenAI;
 
 /// <summary>
 /// Extension methods for IAgentBuilder

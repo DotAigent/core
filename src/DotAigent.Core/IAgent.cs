@@ -1,25 +1,20 @@
 namespace DotAigent.Core;
 
-using System.Text.Json;
-
+/// <summary>
+/// Represents an AI agent that can process user inputs and generate responses.
+/// This interface serves as the primary abstraction for agent implementations
+/// that handle interaction between users and the underlying AI models.
+/// </summary>
 public interface IAgent
 {
-    Task<string> ProcessInputAsync(string input);
-    /*/// <summary>*/
-    /*/// Process the agent asynchronously without returning a specific result.*/
-    /*/// </summary>*/
-    /*public Task<string> ProcessAsync();*/
-    /**/
-    /*/// <summary>*/
-    /*/// Process the agent asynchronously and returns a result of type T.*/
-    /*/// </summary>*/
-    /*/// <typeparam name="T">The type of result to return.</typeparam>*/
-    /*/// <returns>A task representing the asynchronous operation with the result of type T.</returns>*/
-    /*public Task<T> ProcessAsync<T>();*/
-    /**/
-    /*/// <summary>*/
-    /*/// Process the agent asynchronously and returns a JsonElement result.*/
-    /*/// </summary>*/
-    /*/// <returns>A task representing the asynchronous operation with the result as a JsonElement.</returns>*/
-    /*public Task<JsonElement> ProcessAsJsonAsync();*/
+    /// <summary>
+    /// Processes user input asynchronously and generates a response.
+    /// </summary>
+    /// <param name="prompt">The user's input text to be processed by the agent.</param>
+    /// <returns>
+    /// A task that resolves to the agent's response as a string.
+    /// This typically includes the AI model's generated content, potentially
+    /// enhanced by tool executions or other agent capabilities.
+    /// </returns>
+    Task<string> GenerateResponseAsync(string prompt);
 }

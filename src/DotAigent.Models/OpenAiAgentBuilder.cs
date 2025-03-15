@@ -3,10 +3,10 @@ namespace DotAigent.Models;
 using System.Collections.Generic;
 using DotAigent.Core;
 
-public class OpenAiAgentBuilder : IAgentBuilder
+public class OpenAiAgentBuilder : IToolAgentBuilder
 {
     private readonly IAgentBuilder _builder;
-    OpenAiModel _agent = new();
+    readonly OpenAiModel _agent = new();
 
     public OpenAiAgentBuilder(IAgentBuilder builder)
     {
@@ -17,6 +17,12 @@ public class OpenAiAgentBuilder : IAgentBuilder
     public IAgent Build()
     {
         return _builder.Build();
+    }
+
+    public IToolAgentBuilder WithJsonOutputFormat(string jsonOutputFormat)
+    {
+        _agent.JsonOutputFormat = jsonOutputFormat;
+        return this;
     }
 
     public OpenAiAgentBuilder WithKey(string key)
@@ -36,16 +42,22 @@ public class OpenAiAgentBuilder : IAgentBuilder
         return this;
     }
 
-    public IAgentBuilder WithTool(ITool tool)
+    public IAgentBuilder WithSystemPrompt(string systemPrompt)
     {
-        _agent.Tools.Add(tool);
-        return _builder.WithTool(tool);
+        _builder.WithSystemPrompt(systemPrompt);
+        return this;
     }
 
-    public IAgentBuilder WithTools(IEnumerable<ITool> tools)
+    public IToolAgentBuilder WithTool(ITool tool)
+    {
+        _agent.Tools.Add(tool);
+        return this;
+    }
+
+    public IToolAgentBuilder WithTools(IEnumerable<ITool> tools)
     {
         _agent.Tools.AddRange(tools);
-        return _builder.WithTools(tools);
+        return this;
     }
 
     public OpenAiAgentBuilder WithUri(Uri uri)

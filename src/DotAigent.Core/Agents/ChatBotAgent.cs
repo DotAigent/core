@@ -1,16 +1,12 @@
 
 namespace DotAigent.Core.Agents;
 
-public class ChatbotAgent : AgentBase
+public class ChatbotAgent(IModel model) : AgentBase(model)
 {
-    public ChatbotAgent(IModel model, IEnumerable<ITool> tools, string defaultPrompt = "")
-        : base(model, tools, defaultPrompt) { }
-
-    public override async Task<string> ProcessInputAsync(string input)
+    public override async Task<string> GenerateResponseAsync(string prompt)
     {
         try
         {
-            var prompt = string.IsNullOrEmpty(DefaultPrompt) ? input : $"{DefaultPrompt}: {input}";
             return await Model.GenerateResponseAsync(prompt);
         }
         catch (Exception ex)

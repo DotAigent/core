@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DotAigent.Core;
 using OpenAI;
-using OpenAI.Assistants;
 using OpenAI.Chat;
 
 
@@ -14,19 +13,20 @@ public class OpenAiModel : IOpenAiModel
     private const string ParamName = "Model name is required";
     private readonly OpenAIClientOptions _options = new();
     private OpenAIClient? _client;
+    private string _systemPrompt = string.Empty;
+    
     public OpenAiModel(string? apiKey = null, string? modelName = null, Uri? uri = null)
     {
         ApiKey = apiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? "provide-your-api-key-please";
         Uri = uri;
         ModelName = modelName ?? Environment.GetEnvironmentVariable("OPENAI_DEFAULT_MODEL") ?? "";
-
     }
 
     public string ApiKey { get; set; }
-
     public string ModelName { get; set; }
     public Uri? Uri { get; set; }
     public List<ITool> Tools { get; } = [];
+    public string JsonOutputFormat { get; internal set; }
 
     public async Task<string> GenerateResponseAsync(string prompt)
     {
@@ -35,9 +35,15 @@ public class OpenAiModel : IOpenAiModel
         if (string.IsNullOrEmpty(ModelName))
             throw new ArgumentException(ParamName);
 
-        var messages = new List<ChatMessage>();
-        var promtMessage = new UserChatMessage(prompt);
+        if (string.IsNullOrEmpty(_systemPrompt))
+            SetSystemPrompt(string.Empty);
 
+        var messages = new List<ChatMessage>();
+
+        var systemPromptMessage = new SystemChatMessage(string.IsNullOrEmpty(JsonOutputFormat) ? _systemPrompt : $"Only output json no other text.\nEXAMPLE OUTPUT: {JsonOutputFormat}");
+        messages.Add(systemPromptMessage);
+
+        var promtMessage = new UserChatMessage(prompt);
         messages.Add(promtMessage);
 
         var client = _client.GetChatClient(ModelName) ?? throw new ArgumentException($"Model not found {ModelName}");
@@ -110,6 +116,11 @@ public class OpenAiModel : IOpenAiModel
                 case ToolChatMessage:
                     // Do not print any tool messages; let the assistant summarize the tool results instead.
                     break;
+                case SystemChatMessage systemMessage:
+                    sw.WriteLine($"[SYSTEM]:");
+                    sw.WriteLine($"{systemMessage.Content[0].Text}");
+                    sw.WriteLine();
+                    break;
 
                 default:
                     break;
@@ -152,6 +163,8 @@ public class OpenAiModel : IOpenAiModel
             options.Tools.Add(GetChatTool(tool));
 
         }
+        if (string.IsNullOrEmpty(JsonOutputFormat))
+            options.ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat();
         return options;
     }
 
@@ -187,6 +200,15 @@ public class OpenAiModel : IOpenAiModel
             _options.Endpoint = Uri;
 
         return new OpenAIClient(new(ApiKey), options: _options);
+    }
+
+    public void SetSystemPrompt(string systemPrompt)
+    {
+        if (string.IsNullOrEmpty(systemPrompt))
+        {
+            _systemPrompt = Tools.Count > 0 ? "You are a helpful assistant and use the apropiate tool to solve the problem." : "You are a helpful assistant.";
+        }
+        _systemPrompt = systemPrompt;
     }
 }
 public record PropertySchema

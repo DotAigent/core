@@ -10,25 +10,28 @@ public interface IAgentBuilder
     /// </summary>
     IAgentBuilder WithModel(IModel model);
 
+    /// <summary>
+    /// Set the system prompt
+    /// </summary>
+    IAgentBuilder WithSystemPrompt(string systemPrompt);
 
-    /// <summary>
-    /// Add a single tool
-    /// </summary>
-    IAgentBuilder WithTool(ITool tool);
-    
-    /// <summary>
-    /// Add multiple tools
-    /// </summary>
-    IAgentBuilder WithTools(IEnumerable<ITool> tools);
-    
-    /// <summary>
-    /// Set an optional default prompt
-    /// </summary>
-    /*IAgentBuilder WithDefaultPrompt(string defaultPrompt);*/
-    
     /// <summary>
     /// Build the agent
     /// </summary>
     IAgent Build();
 }
 
+public interface IToolAgentBuilder : IAgentBuilder
+{
+    IToolAgentBuilder WithJsonOutputFormat(string jsonOutputFormat);
+
+    /// <summary>
+    /// Add a single tool
+    /// </summary>
+    IToolAgentBuilder WithTool(ITool tool);
+    
+    /// <summary>
+    /// Add multiple tools
+    /// </summary>
+    IToolAgentBuilder WithTools(IEnumerable<ITool> tools);
+}
