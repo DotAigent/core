@@ -1,0 +1,41 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7DB4CE70-661D-4650-B22F-17DAC95497C9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotAigent.Core", "src\DotAigent.Core\DotAigent.Core.csproj", "{4AB244D8-9809-43E5-81F9-80C77538789F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotAigent.Models", "src\DotAigent.Models\DotAigent.Models.csproj", "{3566422B-622D-4551-B8CF-1218F5E83AE0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotAigent", "src\DotAigent\DotAigent.csproj", "{F89DD277-48CB-48E1-94DA-E6D232EA3CE7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4AB244D8-9809-43E5-81F9-80C77538789F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AB244D8-9809-43E5-81F9-80C77538789F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AB244D8-9809-43E5-81F9-80C77538789F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4AB244D8-9809-43E5-81F9-80C77538789F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3566422B-622D-4551-B8CF-1218F5E83AE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3566422B-622D-4551-B8CF-1218F5E83AE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3566422B-622D-4551-B8CF-1218F5E83AE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3566422B-622D-4551-B8CF-1218F5E83AE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F89DD277-48CB-48E1-94DA-E6D232EA3CE7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F89DD277-48CB-48E1-94DA-E6D232EA3CE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F89DD277-48CB-48E1-94DA-E6D232EA3CE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F89DD277-48CB-48E1-94DA-E6D232EA3CE7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4AB244D8-9809-43E5-81F9-80C77538789F} = {7DB4CE70-661D-4650-B22F-17DAC95497C9}
+		{3566422B-622D-4551-B8CF-1218F5E83AE0} = {7DB4CE70-661D-4650-B22F-17DAC95497C9}
+		{F89DD277-48CB-48E1-94DA-E6D232EA3CE7} = {7DB4CE70-661D-4650-B22F-17DAC95497C9}
+	EndGlobalSection
+EndGlobal
