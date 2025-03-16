@@ -1,20 +1,29 @@
 
+
 namespace DotAigent.Core.Agents;
 
-public class ChatbotAgent(IModel model) : AgentBase(model)
+public class ChatbotAgent(IModel model, IEnumerable<ITool> tools, string? systemPrompt = null, string? outputFormat=null) : IAgent
 {
-    public override async Task<string> GenerateResponseAsync(string prompt)
+    private readonly IEnumerable<ITool> _tools = tools;
+
+    public IEnumerable<ITool> Tools =>  _tools;
+
+    public async Task<AiAgentResponse> GenerateResponseAsync(string prompt)
     {
         try
         {
-            return await Model.GenerateResponseAsync(prompt);
+            return await model.GenerateResponseAsync(prompt, _tools, systemPrompt, outputFormat);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error in ChatbotAgent: {ex.Message}");
-            return "Sorry, an error occurred.";
+            return new AiAgentResponse
+            {
+                Success = false,
+                ErrorMessage = ex.Message
+            };
         }
     }
+
 }
 
 

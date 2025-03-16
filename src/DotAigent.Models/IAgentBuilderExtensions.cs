@@ -10,7 +10,7 @@ public static class AgentBuilderExtensions
 {
     public static OpenAiAgentBuilder UsingOpenAiApi(this AgentBuilder builder)
     {
-        return new OpenAiAgentBuilder(builder);
+        return new OpenAiAgentBuilder();
     }
 }
 

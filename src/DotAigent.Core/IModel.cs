@@ -11,15 +11,36 @@ public interface IModel
     /// </summary>
     /// <param name="prompt">The input text prompt to send to the language model.</param>
     /// <returns>A task that resolves to the generated text response from the model.</returns>
-    Task<string> GenerateResponseAsync(string prompt);
+    Task<AiAgentResponse> GenerateResponseAsync(string prompt, IEnumerable<ITool>? tools = null, string? systemPrompt = null, string? outputFormat = null);
 
-    /// <summary>
-    /// Set the models system prompt
-    /// </summary>
-    /// <param name="systemPrompt">The system prompt to set for the model</param>
-    /// <returns>A task that resolves to the generated text response from the model.</returns>
-    /// <remarks>
-    /// An empty string will use a default one for the model.
-    /// </remarks>
-    void SetSystemPrompt(string systemPrompt);
+    void SetModelParameters(AIModelParameters parameters);
+}
+
+public record AIModelParameters
+{
+    public Uri? ApiEndpoint { get; init; }
+    public string? ModelName { get; init; } = string.Empty;
+    public string? ApiKey { get; init; } = string.Empty;
+}
+
+public record AiAgentResponse
+{
+    public bool Success { get; init; }
+    public string ErrorMessage { get; init; } = string.Empty;
+    public IEnumerable<AiChatMessage> Messages { get; init; } = [];
+    public AiChatMessage? Result { get; init; }
+}
+
+public record AiChatMessage
+{
+    public ChatRole Role { get; init; }
+    public string Message { get; init; } = string.Empty;
+}
+
+public enum ChatRole
+{
+    System,
+    User,
+    Agent,
+    Tool
 }

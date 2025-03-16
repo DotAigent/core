@@ -1,10 +1,8 @@
 namespace DotAigent.Core;
 
-/// <summary>
-/// Interface representing a tool that can be used by an AI agent to perform specific tasks.
-/// </summary>
-public interface ITool 
-{ 
+public interface ITool
+{
+
     /// <summary>
     /// Gets the name of the tool. This should be unique and descriptive.
     /// </summary>
@@ -19,6 +17,13 @@ public interface ITool
     /// Gets the parameters that this tool accepts, including their descriptions and constraints.
     /// </summary>
     IEnumerable<ToolParameterDescription> Parameters { get; }
+}
+
+/// <summary>
+/// Interface representing a tool that can be used by an AI agent to perform specific tasks.
+/// </summary>
+public interface IFunctionTool : ITool
+{ 
     
     /// <summary>
     /// Executes the tool with the provided parameters.
@@ -26,4 +31,10 @@ public interface ITool
     /// <param name="toolParameter">The collection of parameters to use when executing the tool.</param>
     /// <returns>A string result of the tool execution.</returns>
     Task<string> ExecuteAsync(IEnumerable<ToolParameter> toolParameter);
+}
+
+public interface IAgentTool : ITool
+{
+
+
 }

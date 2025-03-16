@@ -13,99 +13,51 @@ using OpenAI.Chat;
 /// </summary>
 
 
-public class OpenAiModel : IOpenAiModel
+public class OpenAiModel : IModel
 {
-    /// <summary>
-    /// Error message used when model name is not provided
-    /// </summary>
-    private const string ParamName = "Model name is required";
-    
     /// <summary>
     /// OpenAI client options
     /// </summary>
     private readonly OpenAIClientOptions _options = new();
-    
-    /// <summary>
-    /// OpenAI client instance
-    /// </summary>
-    private OpenAIClient? _client;
-    
-    /// <summary>
-    /// System prompt that provides context to the model
-    /// </summary>
-    private string _systemPrompt = string.Empty;
-    
-    /// <summary>
-    /// Initializes a new instance of the <see cref="OpenAiModel"/> class.
-    /// </summary>
-    /// <param name="apiKey">The API key for accessing OpenAI API. If null, will use OPENAI_API_KEY environment variable.</param>
-    /// <param name="modelName">The name of the model to use. If null, will use OPENAI_DEFAULT_MODEL environment variable.</param>
-    /// <param name="uri">The URI for the API endpoint. If null, will use OpenAI's default endpoint.</param>
-    public OpenAiModel(string? apiKey = null, string? modelName = null, Uri? uri = null)
-    {
-        ApiKey = apiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? "provide-your-api-key-please";
-        Uri = uri;
-        ModelName = modelName ?? Environment.GetEnvironmentVariable("OPENAI_DEFAULT_MODEL") ?? "";
-    }
 
     /// <summary>
-    /// Gets or sets the API key for accessing the OpenAI API.
+    /// The OpenAI model parameters.
     /// </summary>
-    public string ApiKey { get; set; }
-    
-    /// <summary>
-    /// Gets or sets the name of the OpenAI model to use.
-    /// </summary>
-    public string ModelName { get; set; }
-    
-    /// <summary>
-    /// Gets or sets the URI for the API endpoint.
-    /// </summary>
-    public Uri? Uri { get; set; }
-    
-    /// <summary>
-    /// Gets the list of tools available to the model.
-    /// </summary>
-    public List<ITool> Tools { get; } = [];
-    
-    /// <summary>
-    /// Gets or sets the JSON format expected in the output.
-    /// </summary>
-    public string JsonOutputFormat { get; internal set; }
+    private AIModelParameters _modelParameters = new();
 
-    /// <summary>
     /// Generates a response from the OpenAI model based on the provided prompt.
     /// </summary>
     /// <param name="prompt">The input text prompt to send to the language model.</param>
     /// <returns>A task that resolves to the generated text response from the model.</returns>
     /// <exception cref="ArgumentException">Thrown when model name is not provided or a tool is not found.</exception>
     /// <exception cref="NotImplementedException">Thrown when certain finish reasons are encountered but not implemented.</exception>
-    public async Task<string> GenerateResponseAsync(string prompt)
+    public async Task<AiAgentResponse> GenerateResponseAsync(string prompt, IEnumerable<ITool>? tools, string? systemPrompt = null, string? jsonOutputFormat = null)
     {
-        _client ??= GetClient();
+        var messages = new ChatMessageList();
+        var client = GetClient();
 
-        if (string.IsNullOrEmpty(ModelName))
-            throw new ArgumentException(ParamName);
+        var modelName = _modelParameters.ModelName ?? throw new InvalidOperationException("You have to provide a model name");
+        systemPrompt ??= tools is not null ? "You are a helpful assistant and use the apropiate tool to solve the problem." : "You are a helpful assistant.";
 
-        if (string.IsNullOrEmpty(_systemPrompt))
-            SetSystemPrompt(string.Empty);
 
-        var messages = new List<ChatMessage>();
+        // First we add the system message to the conversation.
+        messages.AddSystemMessage(string.IsNullOrEmpty(jsonOutputFormat) ? systemPrompt : $"Only output json no other text.\nEXAMPLE OUTPUT: {jsonOutputFormat}");
 
-        var systemPromptMessage = new SystemChatMessage(string.IsNullOrEmpty(JsonOutputFormat) ? _systemPrompt : $"Only output json no other text.\nEXAMPLE OUTPUT: {JsonOutputFormat}");
-        messages.Add(systemPromptMessage);
+        // Then we add the user prompt to the conversation.
+        messages.AddUserMessage(prompt);
 
-        var promtMessage = new UserChatMessage(prompt);
-        messages.Add(promtMessage);
+        // Get the chat client for the specified model.
+        var chatClient = client.GetChatClient(modelName) ?? throw new ArgumentException($"Model not found {modelName}");
 
-        var client = _client.GetChatClient(ModelName) ?? throw new ArgumentException($"Model not found {ModelName}");
-        ChatCompletionOptions options = GetChatCompletionOptions();
+        ChatCompletionOptions options = GetChatCompletionOptions(tools, jsonOutputFormat);
 
         bool requiresAction;
+
+        // Loop until the conversation is complete.
         do
         {
             requiresAction = false;
-            ChatCompletion completion = await client.CompleteChatAsync(messages, options);
+            ChatCompletion completion = await chatClient.CompleteChatAsync(messages, options);
 
             switch (completion.FinishReason)
             {
@@ -124,9 +76,13 @@ public class OpenAiModel : IOpenAiModel
                         // Then, add a new tool message for each tool call that is resolved.
                         foreach (ChatToolCall toolCall in completion.ToolCalls)
                         {
-                            var tool = Tools.FirstOrDefault(n => n.Name == toolCall.FunctionName) ?? throw new ArgumentException($"Tool not found: {toolCall.FunctionName}");
-                            var result = await tool.ExecuteAsync(GetToolParameters(toolCall));
+                            var tool = tools?.FirstOrDefault(n => n.Name == toolCall.FunctionName) ?? throw new ArgumentException($"Tool not found: {toolCall.FunctionName}");
 
+                            var result = tool switch
+                            {
+                                    IFunctionTool ftool  => await ftool.ExecuteAsync(GetToolParameters(toolCall)),
+                                    _ => throw new ArgumentException($"Tool not found: {toolCall.FunctionName}")
+                            };
                             messages.Add(new ToolChatMessage(toolCall.Id, result));
                         }
 
@@ -148,37 +104,8 @@ public class OpenAiModel : IOpenAiModel
             }
         } while (requiresAction);
 
-        var sw = new StringWriter();
-        foreach (ChatMessage message in messages)
-        {
-            switch (message)
-            {
-                case UserChatMessage userMessage:
-                    sw.WriteLine($"[USER]:");
-                    sw.WriteLine($"{userMessage.Content[0].Text}");
-                    sw.WriteLine();
-                    break;
-
-                case AssistantChatMessage assistantMessage when assistantMessage.Content.Count > 0 && assistantMessage.Content[0].Text.Length > 0:
-                    sw.WriteLine($"[ASSISTANT]:");
-                    sw.WriteLine($"{assistantMessage.Content[0].Text}");
-                    sw.WriteLine();
-                    break;
-
-                case ToolChatMessage:
-                    // Do not print any tool messages; let the assistant summarize the tool results instead.
-                    break;
-                case SystemChatMessage systemMessage:
-                    sw.WriteLine($"[SYSTEM]:");
-                    sw.WriteLine($"{systemMessage.Content[0].Text}");
-                    sw.WriteLine();
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        return sw.ToString();
+        List<AiChatMessage> responseMessages = FormatResponseMessages(messages);
+        return new AiAgentResponse { Success = true, Messages = responseMessages, Result = responseMessages.Last() };
     }
 
     /// <summary>
@@ -218,18 +145,55 @@ public class OpenAiModel : IOpenAiModel
     }
 
     /// <summary>
+    /// Formats the OpenAI chat messages into a list of AiChatMessage objects.
+    /// </summary>
+    /// <param name="messages">The ChatMessageList containing all conversation messages.</param>
+    /// <returns>A list of AiChatMessage objects formatted for the response.</returns>
+    private static List<AiChatMessage> FormatResponseMessages(ChatMessageList messages)
+    {
+        List<AiChatMessage> responseMessages = [];
+        foreach (ChatMessage message in messages)
+        {
+            switch (message)
+            {
+                case UserChatMessage userMessage:
+                    responseMessages.Add(new AiChatMessage  {Role = ChatRole.User, Message = userMessage.Content[0].Text});
+                    break;
+
+                case AssistantChatMessage assistantMessage when assistantMessage.Content.Count > 0 && assistantMessage.Content[0].Text.Length > 0:
+                    responseMessages.Add(new AiChatMessage { Role = ChatRole.Agent, Message = assistantMessage.Content[0].Text });
+                    break;
+
+                case ToolChatMessage tooltMessage when tooltMessage.Content.Count > 0 && tooltMessage.Content[0].Text.Length > 0:
+                    responseMessages.Add(new AiChatMessage { Role = ChatRole.Tool, Message = tooltMessage.Content[0].Text });
+                    break;
+                case SystemChatMessage systemMessage:
+                    responseMessages.Add(new AiChatMessage { Role = ChatRole.System, Message = systemMessage.Content[0].Text });
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        return responseMessages;
+    }
+
+    /// <summary>
     /// Creates and configures chat completion options for the OpenAI API request.
     /// </summary>
     /// <returns>Configured chat completion options.</returns>
-    private ChatCompletionOptions GetChatCompletionOptions()
+    private ChatCompletionOptions GetChatCompletionOptions(IEnumerable<ITool>? tools, string? jsonOutputFormat)
     {
         var options = new ChatCompletionOptions();
-        foreach (var tool in Tools)
+        if (tools is not null)
         {
-            options.Tools.Add(GetChatTool(tool));
+            foreach (var tool in tools)
+            {
+                options.Tools.Add(GetChatTool(tool));
 
+            }
         }
-        if (string.IsNullOrEmpty(JsonOutputFormat))
+        if (jsonOutputFormat is not null)
             options.ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat();
         return options;
     }
@@ -255,18 +219,18 @@ public class OpenAiModel : IOpenAiModel
     /// <returns>Binary data representing the function parameters schema.</returns>
     private static BinaryData GetFunctionParameters(IEnumerable<ToolParameterDescription> parameters)
     {
-       if (!parameters.Any())
-           return BinaryData.Empty;
-    
-       var required = parameters.Where(n => n.Required).Select(n => n.Name);
-       var properties = parameters.Select(n => 
-               new KeyValuePair<string, PropertySchema>(n.Name, new PropertySchema { Type = n.Type, Description = n.Description }));
+        if (!parameters.Any())
+            return BinaryData.Empty;
 
-       var schema = new Schema { Required = [.. required], Properties = properties.ToDictionary(n => n.Key, n => n.Value) };
-       
-       // Serialize the schema to a JSON string.
-       string json = JsonSerializer.Serialize(schema);
-       return BinaryData.FromString(json);
+        var required = parameters.Where(n => n.Required).Select(n => n.Name);
+        var properties = parameters.Select(n =>
+                new KeyValuePair<string, PropertySchema>(n.Name, new PropertySchema { Type = n.Type, Description = n.Description }));
+
+        var schema = new Schema { Required = [.. required], Properties = properties.ToDictionary(n => n.Key, n => n.Value) };
+
+        // Serialize the schema to a JSON string.
+        string json = JsonSerializer.Serialize(schema);
+        return BinaryData.FromString(json);
 
     }
 
@@ -276,26 +240,16 @@ public class OpenAiModel : IOpenAiModel
     /// <returns>An OpenAI client instance.</returns>
     private OpenAIClient GetClient()
     {
-        if (Uri is not null)
-            _options.Endpoint = Uri;
+        var key = _modelParameters.ApiKey ?? throw new InvalidOperationException("You have to provide an API key");
+        if (_modelParameters.ApiEndpoint is not null)
+            _options.Endpoint = _modelParameters.ApiEndpoint;
 
-        return new OpenAIClient(new(ApiKey), options: _options);
+        return new OpenAIClient(new(key), options: _options);
     }
 
-    /// <summary>
-    /// Sets the system prompt for the model.
-    /// </summary>
-    /// <param name="systemPrompt">The system prompt to set for the model.</param>
-    /// <remarks>
-    /// If an empty string is provided, a default system prompt will be used based on whether tools are available.
-    /// </remarks>
-    public void SetSystemPrompt(string systemPrompt)
+    public void SetModelParameters(AIModelParameters parameters)
     {
-        if (string.IsNullOrEmpty(systemPrompt))
-        {
-            _systemPrompt = Tools.Count > 0 ? "You are a helpful assistant and use the apropiate tool to solve the problem." : "You are a helpful assistant.";
-        }
-        _systemPrompt = systemPrompt;
+        _modelParameters = parameters;
     }
 }
 

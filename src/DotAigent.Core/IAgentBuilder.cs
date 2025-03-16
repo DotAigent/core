@@ -6,11 +6,6 @@ namespace DotAigent.Core;
 public interface IAgentBuilder
 {
     /// <summary>
-    /// Set the AI model to use
-    /// </summary>
-    IAgentBuilder WithModel(IModel model);
-
-    /// <summary>
     /// Set the system prompt
     /// </summary>
     IAgentBuilder WithSystemPrompt(string systemPrompt);
@@ -34,4 +29,9 @@ public interface IToolAgentBuilder : IAgentBuilder
     /// Add multiple tools
     /// </summary>
     IToolAgentBuilder WithTools(IEnumerable<ITool> tools);
+
+    IToolAgentBuilder WithToolAgent(IAgent additionTookAgent);
+
 }
+
+

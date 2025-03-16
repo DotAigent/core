@@ -7,6 +7,7 @@ namespace DotAigent.Core;
 /// </summary>
 public interface IAgent
 {
+    
     /// <summary>
     /// Processes user input asynchronously and generates a response.
     /// </summary>
@@ -16,5 +17,7 @@ public interface IAgent
     /// This typically includes the AI model's generated content, potentially
     /// enhanced by tool executions or other agent capabilities.
     /// </returns>
-    Task<string> GenerateResponseAsync(string prompt);
+    Task<AiAgentResponse> GenerateResponseAsync(string prompt);
+
+    IEnumerable<ITool> Tools { get; }
 }

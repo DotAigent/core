@@ -38,8 +38,7 @@ public class AgentBuilder : IAgentBuilder
         if (_model == null)
             throw new InvalidOperationException("An AI model must be specified before building the agent."); 
 
-        _model.SetSystemPrompt(_systemPrompt);
 
-        return new ChatbotAgent(_model);
+        return new ChatbotAgent(_model, []);
     }
 }
