@@ -7,14 +7,40 @@ using DotAigent.Core;
 using OpenAI;
 using OpenAI.Chat;
 
+/// <summary>
+/// Implementation of the OpenAI model interface that interacts with OpenAI's API.
+/// Provides functionality to generate responses using OpenAI models and execute tools.
+/// </summary>
+
 
 public class OpenAiModel : IOpenAiModel
 {
+    /// <summary>
+    /// Error message used when model name is not provided
+    /// </summary>
     private const string ParamName = "Model name is required";
+    
+    /// <summary>
+    /// OpenAI client options
+    /// </summary>
     private readonly OpenAIClientOptions _options = new();
+    
+    /// <summary>
+    /// OpenAI client instance
+    /// </summary>
     private OpenAIClient? _client;
+    
+    /// <summary>
+    /// System prompt that provides context to the model
+    /// </summary>
     private string _systemPrompt = string.Empty;
     
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OpenAiModel"/> class.
+    /// </summary>
+    /// <param name="apiKey">The API key for accessing OpenAI API. If null, will use OPENAI_API_KEY environment variable.</param>
+    /// <param name="modelName">The name of the model to use. If null, will use OPENAI_DEFAULT_MODEL environment variable.</param>
+    /// <param name="uri">The URI for the API endpoint. If null, will use OpenAI's default endpoint.</param>
     public OpenAiModel(string? apiKey = null, string? modelName = null, Uri? uri = null)
     {
         ApiKey = apiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? "provide-your-api-key-please";
@@ -22,12 +48,38 @@ public class OpenAiModel : IOpenAiModel
         ModelName = modelName ?? Environment.GetEnvironmentVariable("OPENAI_DEFAULT_MODEL") ?? "";
     }
 
+    /// <summary>
+    /// Gets or sets the API key for accessing the OpenAI API.
+    /// </summary>
     public string ApiKey { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the name of the OpenAI model to use.
+    /// </summary>
     public string ModelName { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the URI for the API endpoint.
+    /// </summary>
     public Uri? Uri { get; set; }
+    
+    /// <summary>
+    /// Gets the list of tools available to the model.
+    /// </summary>
     public List<ITool> Tools { get; } = [];
+    
+    /// <summary>
+    /// Gets or sets the JSON format expected in the output.
+    /// </summary>
     public string JsonOutputFormat { get; internal set; }
 
+    /// <summary>
+    /// Generates a response from the OpenAI model based on the provided prompt.
+    /// </summary>
+    /// <param name="prompt">The input text prompt to send to the language model.</param>
+    /// <returns>A task that resolves to the generated text response from the model.</returns>
+    /// <exception cref="ArgumentException">Thrown when model name is not provided or a tool is not found.</exception>
+    /// <exception cref="NotImplementedException">Thrown when certain finish reasons are encountered but not implemented.</exception>
     public async Task<string> GenerateResponseAsync(string prompt)
     {
         _client ??= GetClient();
@@ -129,6 +181,11 @@ public class OpenAiModel : IOpenAiModel
         return sw.ToString();
     }
 
+    /// <summary>
+    /// Extracts tool parameters from a tool call JSON.
+    /// </summary>
+    /// <param name="toolCall">The tool call containing function arguments.</param>
+    /// <returns>An enumerable collection of tool parameters.</returns>
     private IEnumerable<ToolParameter> GetToolParameters(ChatToolCall toolCall)
     {
         var jsonDocument = JsonDocument.Parse(toolCall.FunctionArguments);
@@ -141,6 +198,11 @@ public class OpenAiModel : IOpenAiModel
 
     }
 
+    /// <summary>
+    /// Converts a JsonElement to its string representation based on its kind.
+    /// </summary>
+    /// <param name="value">The JSON element to convert.</param>
+    /// <returns>String representation of the JSON element.</returns>
     private string GetPropertyValue(JsonElement value)
     {
         return value.ValueKind switch
@@ -155,6 +217,10 @@ public class OpenAiModel : IOpenAiModel
 
     }
 
+    /// <summary>
+    /// Creates and configures chat completion options for the OpenAI API request.
+    /// </summary>
+    /// <returns>Configured chat completion options.</returns>
     private ChatCompletionOptions GetChatCompletionOptions()
     {
         var options = new ChatCompletionOptions();
@@ -168,6 +234,11 @@ public class OpenAiModel : IOpenAiModel
         return options;
     }
 
+    /// <summary>
+    /// Converts an ITool to a ChatTool for use with the OpenAI API.
+    /// </summary>
+    /// <param name="tool">The tool to convert.</param>
+    /// <returns>A ChatTool representation of the input tool.</returns>
     private static ChatTool GetChatTool(ITool tool)
     {
         return ChatTool.CreateFunctionTool(
@@ -177,6 +248,11 @@ public class OpenAiModel : IOpenAiModel
             );
     }
 
+    /// <summary>
+    /// Converts tool parameter descriptions to a binary data representation for API consumption.
+    /// </summary>
+    /// <param name="parameters">The tool parameter descriptions.</param>
+    /// <returns>Binary data representing the function parameters schema.</returns>
     private static BinaryData GetFunctionParameters(IEnumerable<ToolParameterDescription> parameters)
     {
        if (!parameters.Any())
@@ -194,6 +270,10 @@ public class OpenAiModel : IOpenAiModel
 
     }
 
+    /// <summary>
+    /// Creates or returns an existing OpenAI client.
+    /// </summary>
+    /// <returns>An OpenAI client instance.</returns>
     private OpenAIClient GetClient()
     {
         if (Uri is not null)
@@ -202,6 +282,13 @@ public class OpenAiModel : IOpenAiModel
         return new OpenAIClient(new(ApiKey), options: _options);
     }
 
+    /// <summary>
+    /// Sets the system prompt for the model.
+    /// </summary>
+    /// <param name="systemPrompt">The system prompt to set for the model.</param>
+    /// <remarks>
+    /// If an empty string is provided, a default system prompt will be used based on whether tools are available.
+    /// </remarks>
     public void SetSystemPrompt(string systemPrompt)
     {
         if (string.IsNullOrEmpty(systemPrompt))
@@ -211,6 +298,10 @@ public class OpenAiModel : IOpenAiModel
         _systemPrompt = systemPrompt;
     }
 }
+
+/// <summary>
+/// Represents the schema of a property in a JSON schema.
+/// </summary>
 public record PropertySchema
 {
     [JsonPropertyName("type")]
@@ -221,14 +312,26 @@ public record PropertySchema
 
 }
 
+/// <summary>
+/// Represents a JSON schema for function parameters.
+/// </summary>
 public record Schema
 {
+    /// <summary>
+    /// Gets the type of the schema. Default is "object".
+    /// </summary>
     [JsonPropertyName("type")]
     public string Type { get; init; } = "object";
 
+    /// <summary>
+    /// Gets the dictionary of properties in the schema.
+    /// </summary>
     [JsonPropertyName("properties")]
     public Dictionary<string, PropertySchema> Properties { get; init; } = [];
 
+    /// <summary>
+    /// Gets the array of required property names.
+    /// </summary>
     [JsonPropertyName("required")]
     public string[] Required { get; init; } = [];
 }
