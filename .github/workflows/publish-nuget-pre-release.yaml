@@ -1,0 +1,55 @@
+#### Publish tags to docker hub
+name: 📦 Push to nuget pre-release
+on:
+  workflow_dispatch:
+    inputs:
+      pre:
+        type: choice
+        description: Pre-release tag
+        required: true
+        default: "alpha"
+        options:
+          - alpha
+          - beta
+          - rc
+jobs:
+  deploy_nuget:
+    name: 📦 publish nuget pre-release packages manual version
+    runs-on: ubuntu-latest
+    environment: Publish
+    steps:
+      - name: 📤 Checkout the repository
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+
+      - name: ⏭️ Get next version
+        id: version
+        run: |
+          declare -i newpost
+          latest=$(git describe --tags $(git rev-list --tags --max-count=1))
+          latestpre=$(echo "$latest" | awk '{split($0,a,"."); print a[1] "." a[2]}')
+          datepre=$(date --utc '+%y.%-W')
+          if [[ "$latestpre" == "$datepre" ]]; then
+              latestpost=$(echo "$latest" | awk '{split($0,a,"."); print a[3]}')
+              newpost=$latestpost+1
+          else
+              newpost=0
+          fi
+          echo Current version:    $latest
+          echo New target version: $datepre.$newpost
+          echo "version=$datepre.$newpost" >> $GITHUB_OUTPUT
+          # Get the build number
+          echo "build=$(git rev-list $(git rev-list --tags --no-walk --max-count=1)..HEAD --count)" >> $GITHUB_OUTPUT
+
+      - name: 🥅 Install .Net 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          # dotnet-quality: 'preview'
+
+      - name: 🎁 Pack
+        run: dotnet pack DotAiAgent.sln --configuration Release -p:PackageVersion=${{ steps.version.outputs.version }}-${{ github.event.inputs.pre }}-${{ steps.version.outputs.build }} -p:Version=${{ steps.version.outputs.version }}-${{ github.event.inputs.pre }}-${{ steps.version.outputs.build }}
+        
+      - name: 📨 Push to nuget
+        run: dotnet nuget push **/*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json
