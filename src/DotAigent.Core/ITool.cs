@@ -2,7 +2,6 @@ namespace DotAigent.Core;
 
 public interface ITool
 {
-
     /// <summary>
     /// Gets the name of the tool. This should be unique and descriptive.
     /// </summary>
@@ -20,7 +19,7 @@ public interface ITool
 }
 
 /// <summary>
-/// Interface representing a tool that can be used by an AI agent to perform specific tasks.
+/// Interface representing a function-based tool that can be used by an AI agent to perform specific tasks.
 /// </summary>
 public interface IFunctionTool : ITool
 { 
@@ -33,8 +32,10 @@ public interface IFunctionTool : ITool
     Task<string> ExecuteAsync(IEnumerable<ToolParameter> toolParameter);
 }
 
+/// <summary>
+/// Interface representing a tool that leverages another agent to perform tasks.
+/// </summary>
 public interface IAgentTool : ITool
 {
-
-
+    // This interface is currently empty but provides a type distinction for agent-based tools
 }

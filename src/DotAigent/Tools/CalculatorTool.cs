@@ -1,6 +1,5 @@
 
 using DotAigent.Core;
-using DotAigent.Models;
 
 // public class AdditionToolAgent : IFunctionTool
 // {

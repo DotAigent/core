@@ -1,9 +1,9 @@
+using System.Text.Json;
+using DotAigent.Core.Agents;
+
 namespace DotAigent.Core;
 
-/// <summary>
-/// Interface for the agent builder pattern
-/// </summary>
-public interface IAgentBuilder
+public interface IAgentSupport
 {
     /// <summary>
     /// Set the system prompt
@@ -11,27 +11,71 @@ public interface IAgentBuilder
     IAgentBuilder WithSystemPrompt(string systemPrompt);
 
     /// <summary>
+    /// Agent use the provided tool
+    /// </summary>
+    IAgentBuilder UsingTool(ITool tool);
+}
+
+public interface IBuildSupport 
+{
+    /// <summary>
     /// Build the agent
     /// </summary>
     IAgent Build();
 }
 
-public interface IToolAgentBuilder : IAgentBuilder
+public interface IAgentBuilder : IAgentSupport, IProviderSupport {}
+
+public interface IProviderBuilder: IBuildSupport {}
+
+public interface IProviderSupport
 {
-    IToolAgentBuilder WithJsonOutputFormat(string jsonOutputFormat);
-
+     
     /// <summary>
-    /// Add a single tool
+    /// Use the specified provider, e.g. OpenAI, Google, Antrophic, etc.
     /// </summary>
-    IToolAgentBuilder WithTool(ITool tool);
-    
-    /// <summary>
-    /// Add multiple tools
-    /// </summary>
-    IToolAgentBuilder WithTools(IEnumerable<ITool> tools);
-
-    IToolAgentBuilder WithToolAgent(IAgent additionTookAgent);
-
+    IProviderBuilder UsingProvider(IProvider provider);
 }
 
+/// <summary>
+/// Agent builder
+/// </summary>
+public class AgentBuilder : IAgentBuilder,  IProviderBuilder
+{
+    private IProvider? _provider;
+    private string? _systemPrompt;
+    private readonly List<ITool> _tools =[];
+
+    /// <inheritdoc />
+    public IAgent Build()
+    {
+        var agent = new ChatbotAgent(
+                _provider ?? throw new InvalidOperationException("Provider is required"),
+                _tools, 
+                _systemPrompt);
+
+        return agent;
+    }
+
+    /// <inheritdoc />
+    public IAgentBuilder WithSystemPrompt(string systemPrompt)
+    {
+        _systemPrompt = systemPrompt;
+        return this;
+    }
+
+    /// <inheritdoc />
+    public IAgentBuilder UsingTool(ITool tool)
+    {
+        _tools.Add(tool);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public IProviderBuilder UsingProvider(IProvider provider)
+    {
+        _provider = provider;
+        return this;
+    }
+}
 

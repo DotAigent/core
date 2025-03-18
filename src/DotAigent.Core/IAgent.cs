@@ -19,5 +19,8 @@ public interface IAgent
     /// </returns>
     Task<IAgentResponse<T>> GenerateResponseAsync<T>(string prompt) where T:class;
 
+    /// <summary>
+    /// The tools used by the agent.
+    /// </summary>
     IEnumerable<ITool> Tools { get; }
 }

@@ -1,6 +1,7 @@
 using OpenAI.Chat;
 
-namespace DotAigent.Models;
+namespace DotAigent.Providers.OpenAi;
+
 public class ChatMessageList : List<ChatMessage>
 {
     public void AddSystemMessage(string systemMessage)

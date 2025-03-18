@@ -1,6 +1,5 @@
 ﻿using DotAigent.Core;
-using DotAigent.Models;
-using DotAigent.Tools;
+using DotAigent.Providers.OpenAi;
 using DotNetEnv;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Calendar.v3;
@@ -42,7 +41,7 @@ Env.Load();
 //     }
 // }
 
-var agent = new AgentBuilder2()
+var agent = new AgentBuilder()
     .UsingProvider(new OpenAIProvider("gpt-4o-mini"))
         .Build();
 

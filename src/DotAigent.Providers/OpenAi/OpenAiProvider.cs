@@ -1,4 +1,4 @@
-namespace DotAigent.Models;
+namespace DotAigent.Providers.OpenAi;
 
 using System.Collections.Generic;
 using System.Text.Json;
@@ -103,7 +103,7 @@ public class OpenAIProvider(string modelName, string? apiKey = null, Uri? endpoi
             }
         } while (requiresAction);
 
-        List<AiChatMessage> responseMessages = FormatResponseMessages(messages);
+        List<Core.ChatMessage> responseMessages = FormatResponseMessages(messages);
         return new AgentResponse<T> { Success = true, Messages = responseMessages, Result = GetResult<T>(messages.Last()) };
     }
 
@@ -149,7 +149,7 @@ public class OpenAIProvider(string modelName, string? apiKey = null, Uri? endpoi
         else
             return null;
     }
-    private T? GetResult<T>(ChatMessage completion)
+    private T? GetResult<T>(OpenAI.Chat.ChatMessage completion)
     {
         var result = completion.Content.FirstOrDefault()?.Text;
 
@@ -207,26 +207,26 @@ public class OpenAIProvider(string modelName, string? apiKey = null, Uri? endpoi
     /// </summary>
     /// <param name="messages">The ChatMessageList containing all conversation messages.</param>
     /// <returns>A list of AiChatMessage objects formatted for the response.</returns>
-    private static List<AiChatMessage> FormatResponseMessages(ChatMessageList messages)
+    private static List<Core.ChatMessage> FormatResponseMessages(ChatMessageList messages)
     {
-        List<AiChatMessage> responseMessages = [];
-        foreach (ChatMessage message in messages)
+        List<Core.ChatMessage> responseMessages = [];
+        foreach (OpenAI.Chat.ChatMessage message in messages)
         {
             switch (message)
             {
                 case UserChatMessage userMessage:
-                    responseMessages.Add(new AiChatMessage  {Role = ChatRole.User, Message = userMessage.Content[0].Text});
+                    responseMessages.Add(new Core.ChatMessage  { Role = ChatRole.User, Message = userMessage.Content[0].Text});
                     break;
 
                 case AssistantChatMessage assistantMessage when assistantMessage.Content.Count > 0 && assistantMessage.Content[0].Text.Length > 0:
-                    responseMessages.Add(new AiChatMessage { Role = ChatRole.Agent, Message = assistantMessage.Content[0].Text });
+                    responseMessages.Add(new Core.ChatMessage { Role = ChatRole.Agent, Message = assistantMessage.Content[0].Text });
                     break;
 
                 case ToolChatMessage tooltMessage when tooltMessage.Content.Count > 0 && tooltMessage.Content[0].Text.Length > 0:
-                    responseMessages.Add(new AiChatMessage { Role = ChatRole.Tool, Message = tooltMessage.Content[0].Text });
+                    responseMessages.Add(new Core.ChatMessage { Role = ChatRole.Tool, Message = tooltMessage.Content[0].Text });
                     break;
                 case SystemChatMessage systemMessage:
-                    responseMessages.Add(new AiChatMessage { Role = ChatRole.System, Message = systemMessage.Content[0].Text });
+                    responseMessages.Add(new Core.ChatMessage { Role = ChatRole.System, Message = systemMessage.Content[0].Text });
                     break;
 
                 default:

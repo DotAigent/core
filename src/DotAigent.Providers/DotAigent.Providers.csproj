@@ -4,7 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>DotAigent.Models</RootNamespace>
+    <RootNamespace>DotAigent.Providers</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

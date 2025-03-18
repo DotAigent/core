@@ -1,11 +1,11 @@
 using DotAigent.Core;
 
-namespace DotAigent.Models;
+namespace DotAigent.Providers;
 
-internal record AgentResponse<T> : IAgentResponse<T>
+public record AgentResponse<T> : IAgentResponse<T>
 {
     public bool Success { get; init; }
     public string ErrorMessage { get; init; } = string.Empty;
-    public IEnumerable<AiChatMessage> Messages { get; init; } = [];
+    public IEnumerable<ChatMessage> Messages { get; init; } = [];
     public T? Result { get; init; }
 }
