@@ -3,45 +3,44 @@ namespace DotAigent.Models;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using DotAigent.Core;
 using OpenAI;
 using OpenAI.Chat;
 
-/// <summary>
-/// Implementation of the OpenAI model interface that interacts with OpenAI's API.
-/// Provides functionality to generate responses using OpenAI models and execute tools.
-/// </summary>
-
-
-public class OpenAiModel : IModel
+public class OpenAIProvider(string modelName, string? apiKey = null, Uri? endpoint = null) : IProvider
 {
-    /// <summary>
-    /// OpenAI client options
-    /// </summary>
-    private readonly OpenAIClientOptions _options = new();
+    public string ModelName => modelName; 
 
-    /// <summary>
-    /// The OpenAI model parameters.
-    /// </summary>
-    private AIModelParameters _modelParameters = new();
+    public Uri? Endpoint => endpoint;
 
-    /// Generates a response from the OpenAI model based on the provided prompt.
-    /// </summary>
-    /// <param name="prompt">The input text prompt to send to the language model.</param>
-    /// <returns>A task that resolves to the generated text response from the model.</returns>
-    /// <exception cref="ArgumentException">Thrown when model name is not provided or a tool is not found.</exception>
-    /// <exception cref="NotImplementedException">Thrown when certain finish reasons are encountered but not implemented.</exception>
-    public async Task<AiAgentResponse> GenerateResponseAsync(string prompt, IEnumerable<ITool>? tools, string? systemPrompt = null, string? jsonOutputFormat = null)
+
+    public async Task<IAgentResponse<T>> GenerateResponseAsync<T>(string prompt, string? systemPrompt, IEnumerable<ITool>? tools) where T : class
     {
         var messages = new ChatMessageList();
         var client = GetClient();
+        string? jsonOutputFormat = null;
 
-        var modelName = _modelParameters.ModelName ?? throw new InvalidOperationException("You have to provide a model name");
         systemPrompt ??= tools is not null ? "You are a helpful assistant and use the apropiate tool to solve the problem." : "You are a helpful assistant.";
 
+        if (typeof(T) != typeof(string))
+        {
+            // We have a structured output. Lets get the output example json from type T
+                // If no parameterless constructor exists (common with records), create a sample JSON structure
+                var properties = typeof(T).GetProperties();
+                var sampleObject = new Dictionary<string, object?>();
+                
+                foreach (var prop in properties)
+                {
+                    // Add sample values based on property type
+                    var value = GetDefaultValueForType(prop.PropertyType);
+                    sampleObject[prop.Name] = value;
+                }
+                jsonOutputFormat = JsonSerializer.Serialize(sampleObject);
+        }
 
         // First we add the system message to the conversation.
-        messages.AddSystemMessage(string.IsNullOrEmpty(jsonOutputFormat) ? systemPrompt : $"Only output json no other text.\nEXAMPLE OUTPUT: {jsonOutputFormat}");
+        messages.AddSystemMessage(jsonOutputFormat is null ? systemPrompt : $"Only output json no other text.\nEXAMPLE OUTPUT: {jsonOutputFormat}");
 
         // Then we add the user prompt to the conversation.
         messages.AddUserMessage(prompt);
@@ -105,7 +104,66 @@ public class OpenAiModel : IModel
         } while (requiresAction);
 
         List<AiChatMessage> responseMessages = FormatResponseMessages(messages);
-        return new AiAgentResponse { Success = true, Messages = responseMessages, Result = responseMessages.Last() };
+        return new AgentResponse<T> { Success = true, Messages = responseMessages, Result = GetResult<T>(messages.Last()) };
+    }
+
+    /// <summary>
+    /// Gets a default sample value for a given type to use in JSON structure examples.
+    /// </summary>
+    /// <param name="type">The type to generate a sample value for.</param>
+    /// <returns>A sample value appropriate for the type.</returns>
+    private static object? GetDefaultValueForType(Type type)
+    {
+        if (type == typeof(string))
+            return "sample text";
+        else if (type == typeof(int) || type == typeof(int?))
+            return 0;
+        else if (type == typeof(long) || type == typeof(long?))
+            return 0L;
+        else if (type == typeof(double) || type == typeof(double?))
+            return 0.0;
+        else if (type == typeof(decimal) || type == typeof(decimal?))
+            return 0.0m;
+        else if (type == typeof(bool) || type == typeof(bool?))
+            return false;
+        else if (type == typeof(DateTime) || type == typeof(DateTime?))
+            return DateTime.Now.ToString("o");
+        else if (type == typeof(Guid) || type == typeof(Guid?))
+            return Guid.Empty.ToString();
+        else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
+            return Activator.CreateInstance(type);
+        else if (type.IsEnum)
+            return Enum.GetNames(type).FirstOrDefault() ?? Enum.GetValues(type).GetValue(0)?.ToString();
+        else if (type.IsClass && type != typeof(object))
+        {
+            try
+            {
+                // For nested complex types, we return null to avoid infinite recursion
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        else
+            return null;
+    }
+    private T? GetResult<T>(ChatMessage completion)
+    {
+        var result = completion.Content.FirstOrDefault()?.Text;
+
+        if (typeof(T) == typeof(string))
+        {
+            return (T?)(object?)result;
+        }
+        else
+        {
+            if (result is not null)
+                return JsonSerializer.Deserialize<T>(result);
+            else 
+                return (T?)(object?)null;
+        }
     }
 
     /// <summary>
@@ -190,7 +248,6 @@ public class OpenAiModel : IModel
             foreach (var tool in tools)
             {
                 options.Tools.Add(GetChatTool(tool));
-
             }
         }
         if (jsonOutputFormat is not null)
@@ -240,16 +297,13 @@ public class OpenAiModel : IModel
     /// <returns>An OpenAI client instance.</returns>
     private OpenAIClient GetClient()
     {
-        var key = _modelParameters.ApiKey ?? throw new InvalidOperationException("You have to provide an API key");
-        if (_modelParameters.ApiEndpoint is not null)
-            _options.Endpoint = _modelParameters.ApiEndpoint;
+        var options = new OpenAIClientOptions();
+        var key = apiKey ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new InvalidOperationException("You have to provide an API key");
 
-        return new OpenAIClient(new(key), options: _options);
-    }
+        if (Endpoint is not null)
+            options.Endpoint = Endpoint;
 
-    public void SetModelParameters(AIModelParameters parameters)
-    {
-        _modelParameters = parameters;
+        return new OpenAIClient(new(key), options: options);
     }
 }
 

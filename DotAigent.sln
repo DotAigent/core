@@ -7,7 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7DB4CE70-661
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotAigent.Core", "src\DotAigent.Core\DotAigent.Core.csproj", "{4AB244D8-9809-43E5-81F9-80C77538789F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotAigent.Models", "src\DotAigent.Models\DotAigent.Models.csproj", "{3566422B-622D-4551-B8CF-1218F5E83AE0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotAigent.Providers", "src\DotAigent.Providers\DotAigent.Providers.csproj", "{3566422B-622D-4551-B8CF-1218F5E83AE0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotAigent", "src\DotAigent\DotAigent.csproj", "{F89DD277-48CB-48E1-94DA-E6D232EA3CE7}"
 EndProject

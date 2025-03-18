@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DotAigent.Core.Agents;
 
 namespace DotAigent.Core;
@@ -19,7 +20,7 @@ public interface IBuildSupport
     IAgent Build();
 }
 
-public interface IAgentBuilder2 : IAgentSupport, IProviderSupport, IBuildSupport
+public interface IAgentBuilder2 : IAgentSupport, IProviderSupport
 {
 
 }
@@ -27,17 +28,16 @@ public interface IAgentBuilder2 : IAgentSupport, IProviderSupport, IBuildSupport
 
 public interface IProviderBuilder: IBuildSupport
 {
-    IProviderBuilder WithEndpoint(Uri uri);
-    IProviderBuilder WithModel(string modelName);
 }
+
 public interface IProviderSupport
 {
-    IProviderBuilder UsingProvider(Provider provider);
+    IProviderBuilder UsingProvider(IProvider provider);
 }
 
 public class AgentBuilder2 : IAgentBuilder2,  IProviderBuilder
 {
-    private Provider _provider;
+    private IProvider? _provider;
     private string _systemPrompt = string.Empty;
     private string _modelName = string.Empty;
     private Type? _resultType;
@@ -46,14 +46,10 @@ public class AgentBuilder2 : IAgentBuilder2,  IProviderBuilder
 
     public IAgent Build()
     {
-        var provider = _provider switch
-        {
-            Provider.OpenAI => new OpenAIProvider(_modelName, _endpoint),
-            _ => throw new NotImplementedException()
-        };
+
 
         var agent = new ChatbotAgent2(
-                provider, 
+                _provider ?? throw new InvalidOperationException("Provider is required"),
                 _tools, 
                 _systemPrompt);
 
@@ -66,11 +62,6 @@ public class AgentBuilder2 : IAgentBuilder2,  IProviderBuilder
         return this;
     }
 
-    public IProviderBuilder WithProvider(Provider provider)
-    {
-        _provider = provider;
-        return this;
-    }
 
     public IAgentBuilder2 WithResultType<T>()
     {
@@ -90,50 +81,10 @@ public class AgentBuilder2 : IAgentBuilder2,  IProviderBuilder
         return this;
     }
 
-    IProviderBuilder IProviderBuilder.WithModel(string modelName)
-    {
-        _modelName = modelName;
-        return this;
-    }
-
-    public IProviderBuilder UsingProvider(Provider provider)
+    public IProviderBuilder UsingProvider(IProvider provider)
     {
         _provider = provider;
         return this;
     }
 }
 
-internal class ChatbotAgent2 : IAgent
-{
-    private readonly IProvider _provider;
-    private readonly IEnumerable<ITool> _tools;
-    private readonly string _systemPrompt;
-
-    public ChatbotAgent2(IProvider provider, IEnumerable<ITool> tools, string systemPrompt)
-    {
-        _provider = provider;
-        _tools = tools;
-        _systemPrompt = systemPrompt;
-    }
-
-    public IEnumerable<ITool> Tools => _tools;
-
-    public Task<AiAgentResponse> GenerateResponseAsync(string prompt)
-    {
-        throw new NotImplementedException();
-    }
-}
-
-
-public enum Provider
-{
-    OpenAI,
-}
-
-public class OpenAIProvider(string modelName, Uri? endpoint) : IProvider
-{
-
-    public Uri? Endpoint => endpoint;
-
-    string IProvider.ModelName => modelName;
-}

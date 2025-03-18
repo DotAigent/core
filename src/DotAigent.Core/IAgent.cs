@@ -17,7 +17,7 @@ public interface IAgent
     /// This typically includes the AI model's generated content, potentially
     /// enhanced by tool executions or other agent capabilities.
     /// </returns>
-    Task<AiAgentResponse> GenerateResponseAsync(string prompt);
+    Task<IAgentResponse<T>> GenerateResponseAsync<T>(string prompt) where T:class;
 
     IEnumerable<ITool> Tools { get; }
 }

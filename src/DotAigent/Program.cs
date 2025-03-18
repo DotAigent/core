@@ -42,22 +42,28 @@ Env.Load();
 //     }
 // }
 
-var agent = new AgentBuilder()
-    .UsingOpenAiApi()
-        .WithModelName("gpt-4o-mini")
+var agent = new AgentBuilder2()
+    .UsingProvider(new OpenAIProvider("gpt-4o-mini"))
         .Build();
 
-var result = agent.GenerateResponseAsync("What is the meaning of life?").Result;
-Console.WriteLine(result);
+var response = await agent.GenerateResponseAsync<AgentSumOutput>("What is the sum of 1 and 2");
+Console.WriteLine(response.Result);
 
-var aent = new AgentBuilder2()
-    .WithSystemPrompt("some systemprompt")
-    .WithResultType<AgentDataOutput>()
-    .UsingTool(new GoogleSearchTool())
-    .UsingProvider(Provider.OpenAI)
-        .WithEndpoint(new Uri("http://localhost:11434"))
-        .WithModel("llama3.2:latest")
-    .Build();
+public record AgentSumOutput(int Sum);
+
+// foreach (var message in result.Messages)
+// {
+//     Console.WriteLine(message);
+// }
+
+// var aent = new AgentBuilder2()
+//     .WithSystemPrompt("some systemprompt")
+//     .WithResultType<AgentDataOutput>()
+//     .UsingTool(new GoogleSearchTool())
+//     .UsingProvider(Provider.OpenAI)
+//         .WithEndpoint(new Uri("http://localhost:11434"))
+//         .WithModel("llama3.2:latest")
+//     .Build();
 
 public record AgentDataOutput(string query);
 
