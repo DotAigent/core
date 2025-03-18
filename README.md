@@ -51,3 +51,20 @@ class Program
         Console.WriteLine(markdown);
     }
 }
+
+Agent
+    - SystemPrompt
+    - Tools
+    - StructuredResultType
+    - Model
+    - ModelSettings
+
+Model
+    - ModelName
+    - Provider (the service provider of the Model)
+    - Interface (The API endpoint type)
+
+Tool
+    - Structured Input
+    - ExecuteTool
+    - Structured Output

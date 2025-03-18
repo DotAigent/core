@@ -2,83 +2,94 @@
 using DotAigent.Models;
 using DotAigent.Tools;
 using DotNetEnv;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Calendar.v3;
+using Google.Apis.Services;
+using Google.Apis.Util.Store;
 
 Env.Load();
 
+// string[] Scopes = [CalendarService.Scope.Calendar];
+// string ApplicationName = "Slaven";
+//
+// GoogleCredential credential;
+// using (var stream = new FileStream("slaven-secret.json", FileMode.Open, FileAccess.Read))
+// {
+//     credential = GoogleCredential.FromStream(stream)
+//     .CreateScoped(Scopes);
+//     /*.CreateWithUser("tomash277@gmail.com");*/
+// }
+//
+// // Create Google Calendar API service
+// var service = new CalendarService(new BaseClientService.Initializer()
+// {
+//     HttpClientInitializer = credential,
+//     ApplicationName = ApplicationName,
+// });
+// string calendarId = "07to468qci29lvcgkpi9vks6ek@group.calendar.google.com";
+// var request = service.Events.List(calendarId);
+// request.TimeMinDateTimeOffset = DateTime.Now;
+// var events = request.Execute();
+//
+// Console.WriteLine("Events retrieved successfully!");
+// Console.WriteLine($"Total events: {events.Items?.Count ?? 0}");
+// Console.WriteLine("Upcoming events:");
+// if (events.Items != null)
+// {
+//     foreach (var eventItem in events.Items)
+//     {
+//         Console.WriteLine($"{eventItem.Summary} ({eventItem.Start.DateTime})");
+//     }
+// }
 
 var agent = new AgentBuilder()
-.UsingOpenAiApi()
-    .WithModelName("gpt-4o-mini")
-    /*.WithModelName("qwen2.5:14b")*/
-    /*.WithUri(new Uri("http://localhost:11434/v1")) // Local ollama*/
-    .WithTool(new CountryLookupTool())
-.Build();
-
-var response = await agent.GenerateResponseAsync("Give me information about France, Sweden and Finland and compare them in a table");
-
-Console.WriteLine(response.Result?.Message);
-
-public class AdditionToolAgent : IFunctionTool
-{
-    public string Name => "calculator_tool";
-
-    public string Description => "use this tool for calcluations like addition, subtraction, multiplication, division";
-
-    public IEnumerable<ToolParameterDescription> Parameters =>
-        [
-            new ToolParameterDescription("query", "Users query for calculation of the sum of two numbers", "string", true),
-        ];
-
-    public async Task<string> ExecuteAsync(IEnumerable<ToolParameter> toolParameters)
-    {
-        var agent = new AgentBuilder()
-        .UsingOpenAiApi()
-            /*.WithModelName("gpt-4o-mini")*/
-            .WithModelName("qwen2.5:14b")
-            .WithUri(new Uri("http://localhost:11434/v1")) // Local ollama
-            .WithTool(new AdditionCalculatorTool())
+    .UsingOpenAiApi()
+        .WithModelName("gpt-4o-mini")
         .Build();
 
-        /*Console.WriteLine($"Calculating the sum of two numbers using query {toolParameters}");*/
-        var query = toolParameters.FirstOrDefault(p => p.Name == "query")?.Value ?? throw new ArgumentException("Query must be provided");
-        /*Console.WriteLine($"Calculating the sum of two numbers using query {query}");*/
-        var result = await agent.GenerateResponseAsync(query);
+var result = agent.GenerateResponseAsync("What is the meaning of life?").Result;
+Console.WriteLine(result);
 
-        /*Console.WriteLine($"TOOL: Calculating the sum of two numbers using query {query} equals {result.Result?.Message}");*/
-        if (!result.Success)
-            throw new InvalidOperationException($"Error in calculation, {result.ErrorMessage}");
-        return result.Result?.Message ?? throw new InvalidOperationException("Error in calculation");
+var aent = new AgentBuilder2()
+    .WithSystemPrompt("some systemprompt")
+    .WithResultType<AgentDataOutput>()
+    .UsingTool(new GoogleSearchTool())
+    .UsingProvider(Providers.OpenAI)
+        .WithEndpoint(new Uri("http://localhost:11434"))
+        .WithModel("llama3.2:latest")
+    .Build();
 
-    }
-}
+public record AgentDataOutput(string query);
 
-public class AdditionCalculatorTool : IFunctionTool
+
+internal class GoogleSearchTool : ITool
 {
-    public string Name => "Add";
-
-    public IEnumerable<ToolParameterDescription> Parameters =>
-        [
-            new ToolParameterDescription("A", "First number to add.", "integer", true),
-            new ToolParameterDescription("B", "Second number to add.", "integer", true),
-        ];
-
-    public string Description => "Calculates the sum of two numbers.";
-
-    public Task<string> ExecuteAsync(IEnumerable<ToolParameter> parameters)
+    public GoogleSearchTool()
     {
-        var firstNumberStr = parameters.First(p => p.Name == "A").Value;
-        var secondNumberStr = parameters.First(p => p.Name == "B").Value;
-
-        if (!double.TryParse(firstNumberStr, out double firstNumber))
-            throw new ArgumentException("A must be a number.");
-        if (!double.TryParse(secondNumberStr, out double secondNumber))
-            throw new ArgumentException("B must be a number.");
-        var result = firstNumber + secondNumber;
-
-        return Task.FromResult($"{result}");
     }
+
+    public string Name => throw new NotImplementedException();
+
+    public string Description => throw new NotImplementedException();
+
+    public IEnumerable<ToolParameterDescription> Parameters => throw new NotImplementedException();
 }
 
-/*.WithModelName("gpt-4o-mini")*/
-/*.WithSystemPrompt("You are a additon tool assistant")*/
-/*.WithModelName("gemma3:12b")*/
+
+// Agent
+//     - SystemPrompt
+//     - Tools
+//     - StructuredResultType
+//     - Model
+//     - ModelSettings
+//
+// Model
+//     - ModelName
+//     - Provider (the service provider of the Model)
+//     - Interface (The API endpoint type)
+//
+// Tool
+//     - Structured Input
+//     - ExecuteTool
+//     - Structured Output
+//
