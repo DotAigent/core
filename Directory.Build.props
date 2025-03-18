@@ -1,0 +1,28 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>13.0</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>All</AnalysisMode>
+  </PropertyGroup>
+
+  <!--Some sensible defaults for all projects, can be overriden in the projects themselves-->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!--Properties for nuget which are usually the same-->
+  <PropertyGroup>
+    <Authors>helto4real</Authors>
+    <Company>DotAiAgent</Company>
+    <projectUrl>https://github.com/DotAiAgent</projectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <tags>AI, Agent</tags>
+  </PropertyGroup>
+</Project>

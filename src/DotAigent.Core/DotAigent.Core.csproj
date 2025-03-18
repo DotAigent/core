@@ -5,6 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>DotAigent.Core</RootNamespace>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>DotAiAgent.Core</PackageId>
+    <description>Core interfaces and classes for DotAiAgent</description>
+    <PackageDescription>
+        Provides core interfaces and classes for DotAiAgent.
+    </PackageDescription>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
 
 </Project>
