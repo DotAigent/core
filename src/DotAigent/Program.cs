@@ -54,7 +54,7 @@ var aent = new AgentBuilder2()
     .WithSystemPrompt("some systemprompt")
     .WithResultType<AgentDataOutput>()
     .UsingTool(new GoogleSearchTool())
-    .UsingProvider(Providers.OpenAI)
+    .UsingProvider(Provider.OpenAI)
         .WithEndpoint(new Uri("http://localhost:11434"))
         .WithModel("llama3.2:latest")
     .Build();
