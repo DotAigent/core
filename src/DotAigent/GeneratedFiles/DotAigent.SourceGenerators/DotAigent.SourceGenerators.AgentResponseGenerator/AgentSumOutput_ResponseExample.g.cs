@@ -1,5 +1,5 @@
 ﻿
-    public partial class AgentSumOutput  
-    {
-        public static string JsonExample => @"{}";
-    }
+public partial class AgentSumOutput  
+{
+    public static string JsonExample => @"{}";
+}

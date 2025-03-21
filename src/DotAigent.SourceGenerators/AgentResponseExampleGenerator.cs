@@ -1,19 +1,10 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Collections.Immutable;
-using System.Threading;
-
-
-
 
 namespace DotAigent.SourceGenerators;
-
-// Record to track class info for incremental generation
-public record AgentResponseClassInfo(string Namespace, string ClassName, string ClassHash, INamedTypeSymbol ClassSymbol);
 
 [Generator]
 public class AgentResponseGenerator : IIncrementalGenerator
@@ -22,119 +13,66 @@ public class AgentResponseGenerator : IIncrementalGenerator
     {
         Log("AgentResponseGenerator Initialize");
 
-        // Step 1: Find all class declarations with [AgentResponse] attribute
-        IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = context.SyntaxProvider
-            .CreateSyntaxProvider(
-                predicate: (node, _) => node is ClassDeclarationSyntax cds && cds.AttributeLists.Any(),
-                transform: (ctx, _) => GetClassWithAgentResponse(ctx))
-            .Where(cds => cds != null)!;
+        // Use ForAttributeWithMetadataName to get class symbols with [AgentResponse]
+        var classSymbols = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                "AgentResponseAttribute", // Fully qualified name might be needed: "Namespace.AgentResponseAttribute"
+                predicate: (node, _) => node is ClassDeclarationSyntax,
+                transform: (ctx, _) => (INamedTypeSymbol)ctx.TargetSymbol
+            );
 
-        // Step 2: Transform class declarations into class info records with the semantic model and a hash to track changes
-        IncrementalValueProvider<Compilation> compilationProvider = context.CompilationProvider;
-        IncrementalValuesProvider<(ClassDeclarationSyntax ClassDeclaration, Compilation Compilation)> classesAndCompilations = 
-            classDeclarations.Combine(compilationProvider);
-            
-        // Step 3: Transform to class info with the symbol
-        IncrementalValuesProvider<AgentResponseClassInfo> classInfos = classesAndCompilations
-            .Select((tuple, ct) => GetClassInfo(tuple.ClassDeclaration, tuple.Compilation, ct));
-
-        // Step 4: Register the source output action
-        context.RegisterSourceOutput(classInfos, GenerateSource);
+        // Register source output using the class symbols directly
+        context.RegisterSourceOutput(classSymbols, GenerateSource);
     }
 
-    private static ClassDeclarationSyntax? GetClassWithAgentResponse(GeneratorSyntaxContext context)
-    {
-        var classDeclaration = (ClassDeclarationSyntax)context.Node;
-        foreach (var attributeList in classDeclaration.AttributeLists)
-        {
-            foreach (var attribute in attributeList.Attributes)
-            {
-                var symbol = context.SemanticModel.GetSymbolInfo(attribute).Symbol;
-                if (symbol is IMethodSymbol attributeConstructor &&
-                    attributeConstructor.ContainingType.Name == "AgentResponseAttribute")
-                {
-                    return classDeclaration;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static AgentResponseClassInfo GetClassInfo(ClassDeclarationSyntax classDeclaration, Compilation compilation, CancellationToken ct)
-    {
-        var namespaceName = GetNamespace(classDeclaration);
-        var className = classDeclaration.Identifier.Text;
-        // Create a hash of the class declaration to track changes
-        var hash = classDeclaration.GetHashCode().ToString();
-        
-        // Get the symbol for the class
-        var semanticModel = compilation.GetSemanticModel(classDeclaration.SyntaxTree);
-        var symbol = semanticModel.GetDeclaredSymbol(classDeclaration) as INamedTypeSymbol;
-
-        return new AgentResponseClassInfo(namespaceName, className, hash, symbol);
-    }
-
-
-    private static string GetNamespace(ClassDeclarationSyntax classDeclaration)
-    {
-        // Get namespace from either namespace declaration or file-scoped namespace
-        var namespaceDeclaration = classDeclaration.Parent as NamespaceDeclarationSyntax;
-        if (namespaceDeclaration != null)
-            return namespaceDeclaration.Name.ToString();
-
-        var fileScopedNamespace = classDeclaration.SyntaxTree.GetRoot()
-            .DescendantNodes()
-            .OfType<FileScopedNamespaceDeclarationSyntax>()
-            .FirstOrDefault();
-
-        if (fileScopedNamespace != null)
-            return fileScopedNamespace.Name.ToString();
-
-        return string.Empty; // Global namespace
-    }
-
-  private static void GenerateSource(SourceProductionContext context, AgentResponseClassInfo classInfo)
+    private static void GenerateSource(SourceProductionContext context, INamedTypeSymbol classSymbol)
     {
         try
         {
-            var classSymbol = classInfo.ClassSymbol;
-            
             if (classSymbol == null)
             {
-                Log($"Could not find symbol for class {classInfo.ClassName} in namespace {classInfo.Namespace}");
+                Log("Class symbol is null");
                 return;
             }
 
+            // Extract namespace and class name from the symbol
+            string namespaceName = classSymbol.ContainingNamespace.IsGlobalNamespace ? string.Empty : classSymbol.ContainingNamespace.ToDisplayString();
+            string className = classSymbol.Name;
 
             string jsonExample = GenerateJsonExample(classSymbol);
             string escapedJsonExample = EscapeStringLiteral(jsonExample);
 
-            Log($"Generating source for {classInfo.ClassName}");
-            Log($"Namespace: {classInfo.Namespace}");
+            Log($"Generating source for {className}");
+            Log($"Namespace: {namespaceName}");
             Log($"JsonExample: {escapedJsonExample}");
 
             // Generate the source code
-            var source = string.IsNullOrEmpty(classInfo.Namespace)
+            string source = string.IsNullOrEmpty(namespaceName)
                 ? $@"
-    public partial class {classInfo.ClassName}  
-    {{
-        public static string JsonExample => @""{escapedJsonExample}"";
-    }}
+public partial class {className}  
+{{
+    public static string JsonExample => @""{escapedJsonExample}"";
+}}
 "
                 : $@"
-namespace {classInfo.Namespace}
+namespace {namespaceName}
 {{
-    public partial class {classInfo.ClassName}  
+    public partial class {className}  
     {{
         public static string JsonExample => @""{escapedJsonExample}"";
     }}
-}}";
+}}
+";
 
-            context.AddSource($"{classInfo.ClassName}_ResponseExample.g.cs", source);
+            // Use namespace in hint name to ensure uniqueness
+            string hintName = string.IsNullOrEmpty(namespaceName) 
+                ? $"{className}_ResponseExample.g.cs" 
+                : $"{namespaceName.Replace(".", "_")}_{className}_ResponseExample.g.cs";
+            context.AddSource(hintName, source);
         }
         catch (Exception ex)
         {
-            Log($"Error generating source for {classInfo.ClassName}: {ex.Message}");
+            Log($"Error generating source for {classSymbol?.Name ?? "unknown"}: {ex.Message}");
         }
     }
 
@@ -183,13 +121,12 @@ namespace {classInfo.Namespace}
 
     private static string EscapeStringLiteral(string value)
     {
-        // Escape double quotes and other special characters for C# string literal
         return value.Replace("\"", "\"\"");
     }
+
     private static void Log(string message)
     {
         string logFilePath = Path.Combine("/home/thhel/", "incremental_generator.log");
         File.AppendAllText(logFilePath, $"{DateTime.Now}: {message}{Environment.NewLine}");
     }
-
 }
