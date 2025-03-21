@@ -1,54 +1,61 @@
 ﻿using DotAigent.Core;
 using DotAigent.Providers.OpenAi;
 using DotNetEnv;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Calendar.v3;
-using Google.Apis.Services;
-using Google.Apis.Util.Store;
 
-Env.Load();
+internal class Program
+{
+    private static async Task Main(string[] args)
+    {
+        Env.Load();
 
-// string[] Scopes = [CalendarService.Scope.Calendar];
-// string ApplicationName = "Slaven";
-//
-// GoogleCredential credential;
-// using (var stream = new FileStream("slaven-secret.json", FileMode.Open, FileAccess.Read))
-// {
-//     credential = GoogleCredential.FromStream(stream)
-//     .CreateScoped(Scopes);
-//     /*.CreateWithUser("tomash277@gmail.com");*/
-// }
-//
-// // Create Google Calendar API service
-// var service = new CalendarService(new BaseClientService.Initializer()
-// {
-//     HttpClientInitializer = credential,
-//     ApplicationName = ApplicationName,
-// });
-// string calendarId = "07to468qci29lvcgkpi9vks6ek@group.calendar.google.com";
-// var request = service.Events.List(calendarId);
-// request.TimeMinDateTimeOffset = DateTime.Now;
-// var events = request.Execute();
-//
-// Console.WriteLine("Events retrieved successfully!");
-// Console.WriteLine($"Total events: {events.Items?.Count ?? 0}");
-// Console.WriteLine("Upcoming events:");
-// if (events.Items != null)
-// {
-//     foreach (var eventItem in events.Items)
-//     {
-//         Console.WriteLine($"{eventItem.Summary} ({eventItem.Start.DateTime})");
-//     }
-// }
+        // string[] Scopes = [CalendarService.Scope.Calendar];
+        // string ApplicationName = "Slaven";
+        //
+        // GoogleCredential credential;
+        // using (var stream = new FileStream("slaven-secret.json", FileMode.Open, FileAccess.Read))
+        // {
+        //     credential = GoogleCredential.FromStream(stream)
+        //     .CreateScoped(Scopes);
+        //     /*.CreateWithUser("tomash277@gmail.com");*/
+        // }
+        //
+        // // Create Google Calendar API service
+        // var service = new CalendarService(new BaseClientService.Initializer()
+        // {
+        //     HttpClientInitializer = credential,
+        //     ApplicationName = ApplicationName,
+        // });
+        // string calendarId = "07to468qci29lvcgkpi9vks6ek@group.calendar.google.com";
+        // var request = service.Events.List(calendarId);
+        // request.TimeMinDateTimeOffset = DateTime.Now;
+        // var events = request.Execute();
+        //
+        // Console.WriteLine("Events retrieved successfully!");
+        // Console.WriteLine($"Total events: {events.Items?.Count ?? 0}");
+        // Console.WriteLine("Upcoming events:");
+        // if (events.Items != null)
+        // {
+        //     foreach (var eventItem in events.Items)
+        //     {
+        //         Console.WriteLine($"{eventItem.Summary} ({eventItem.Start.DateTime})");
+        //     }
+        // }
 
-var agent = new AgentBuilder()
-    .UsingProvider(new OpenAIProvider("gpt-4o-mini"))
-        .Build();
+        var agent = new AgentBuilder()
+            .UsingProvider(new OpenAIProvider("gpt-4o-mini"))
+                .Build();
 
-var response = await agent.GenerateResponseAsync<AgentSumOutput>("What is the sum of 1 and 2");
-Console.WriteLine(response.Result);
+        var response = await agent.GenerateResponseAsync<AgentSumOutput>("What is the sum of 1 and 2");
+        Console.WriteLine(response.Result);
 
-public record AgentSumOutput(int Sum);
+        // AgentSumOutput.;
+        var x = new AgentSumOutput(100);
+    }
+}
+
+[AgentResponse]
+public partial class AgentSumOutput(int Sum);
+
 
 // foreach (var message in result.Messages)
 // {
@@ -64,7 +71,6 @@ public record AgentSumOutput(int Sum);
 //         .WithModel("llama3.2:latest")
 //     .Build();
 
-public record AgentDataOutput(string query);
 
 
 internal class GoogleSearchTool : ITool
