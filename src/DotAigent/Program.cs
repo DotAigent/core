@@ -48,13 +48,11 @@ internal class Program
         var response = await agent.GenerateResponseAsync<AgentSumOutput>("What is the sum of 1 and 2");
         Console.WriteLine(response.Result);
 
-        // AgentSumOutput.;
-        var x = new AgentSumOutput(100);
+        // // AgentSumOutput.;
+        // var x = new AgentSumOutput(1);
     }
 }
 
-[AgentResponse]
-public partial class AgentSumOutput(int Sum);
 
 
 // foreach (var message in result.Messages)

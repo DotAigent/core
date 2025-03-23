@@ -13,7 +13,7 @@
     <ProjectReference Include="..\DotAigent.Providers\DotAigent.Providers.csproj" />
     <ProjectReference Include="..\DotAigent.SourceGenerators\DotAigent.SourceGenerators.csproj" OutputItemType="Analyzer" 
                       ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\DotAigent.SourceGenerators.SharedLibrary\DotAigent.SourceGenarators.SharedLibrary.csproj" />
+    <!--<ProjectReference Include="..\DotAigent.SourceGenerators.SharedLibrary\DotAigent.SourceGenarators.SharedLibrary.csproj" />-->
   </ItemGroup>
 
   <ItemGroup>
