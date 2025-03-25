@@ -1,6 +1,6 @@
 using DotAigent.Core;
 
-namespace DotAigent.Providers;
+namespace DotAigent.Core;
 
 public record AgentResponse<T> : IAgentResponse<T>
 {

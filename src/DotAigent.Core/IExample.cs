@@ -8,5 +8,5 @@ public interface IExample
     /// <summary>
     /// Example JSON representation of this class
     /// </summary>
-    string JsonExample { get; }
+    static string JsonExample { get; } = string.Empty;
 }

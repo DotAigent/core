@@ -1,4 +1,4 @@
-using DotAigent.Core;
+namespace DotAigent.Core;
 
 [AttributeUsage(AttributeTargets.Class)]
-public class AgentResponseAttribute : Attribute { }
+public sealed class AgentResponseAttribute : Attribute { }
